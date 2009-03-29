@@ -49,8 +49,17 @@ public:
 
 
 // image class - handles grey scale images
+
 class Image {
+public:
+	
+	typedef enum {
+		kRed=1,
+		kGreen=2,
+		kBlue=4} ColorMask;
+	
 private:
+
 	// pointer to the image data
 	uint8_t *m_imageData;
 	// do we actually own the image
@@ -62,8 +71,11 @@ private:
 	Image(ImageWrapper *other, int x1, int y1, int x2, int y2);
 	Image(int width, int height);
 	Image(uint8_t *imageData, int width, int height, bool ownsData=false);
-	Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false);
+	Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false,int colors);
 public:
+
+	
+	
 	// destructor
 	~Image() {
 		if(m_ownsData)
@@ -77,13 +89,13 @@ public:
 	static ImageWrapper *createImage(int width, int height);
 	// create an image from data
 	static ImageWrapper *createImage(uint8_t *imageData, int width, int height, bool ownsData=false);
-	// take a source UIImage and convert it to greyscale
-	static ImageWrapper *createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false);
+	// take a source UIImage and convert it to grayscale
+	static ImageWrapper *createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false, int colors=kGreen);
 	
 	// edge detection
 	ImageWrapper *cannyEdgeExtract(float tlow, float thigh);
 	// local thresholding
-	ImageWrapper* autoLocalThreshold();
+	ImageWrapper* autoLocalThreshold(const int local_size=10);
 	// threshold using integral
 	ImageWrapper *autoIntegratingThreshold();
 	// threshold an image automatically
@@ -102,6 +114,12 @@ public:
 	void HistogramEqualisation();
 	// skeltonize
 	void skeletonise();
+	// invert pixels
+	void invert();
+	// binary erosion and dilation with a 3x3 square kernal
+	ImageWrapper *erode();
+	ImageWrapper *dilate();
+	
 	// convert back to a UIImage for display
 	UIImage *toUIImage();
 	// access the image data
@@ -117,6 +135,13 @@ public:
 	// helper functions for resizing
 	static float Interpolate1(float a, float b, float c);
 	static float Interpolate2(float a, float b, float c, float d, float x, float y);
+	// test jig support
+	inline uint8_t* atRow(const int rowIndex) {
+		return (*this)[rowIndex];
+	}
+	inline int atXY(const int x, const int y) {
+		return (*this)[y][x];
+	}
 };
 
 
