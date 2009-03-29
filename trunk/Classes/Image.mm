@@ -75,10 +75,8 @@ Image::Image(uint8_t *imageData, int width, int height, bool ownsData) {
 	m_ownsData=ownsData;
 }
 
-// convert from a UIImage to a grey scale image
-/* We do a very quick and dirty conversion to grey scale by only taking the green channel from the image.
- This tends to be the channel that has the least noise in a jpeg compressed image */
-Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees) {
+// convert from a UIImage to a grey scale image by averaging red green blue
+Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees, int colors=kGreen) {
 	NSDate *start=[NSDate date];
 	if(imageIsRotatedBy90degrees) {
 		int tmp=width;
@@ -104,11 +102,11 @@ Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90de
 	for(int y=0; y<m_height; y++) {
 		for(int x=0; x<m_width; x++) {
 			uint32_t rgbPixel=rgbImage[y*m_width+x];
-			//			uint32_t r=(rgbPixel>>8)&255;
-			uint32_t g=(rgbPixel>>16)&255;
-			//			uint32_t b=(rgbPixel>>24)&255;
-			//			m_imageData[y*m_width+x]=(r+g+b)/3;
-			m_imageData[y*m_width+x]=g;
+			uint32_t sum=0,count=0;
+			if (colors & kRed) {sum += (rgbPixel>>24)&255; count++;}
+			if (colors & kGreen) {sum += (rgbPixel>>16)&255; count++;}
+			if (colors & kBlue) {sum += (rgbPixel>>8)&255; count++;}
+			m_imageData[y*m_width+x]=sum/count;
 		}
 	}
 	free(rgbImage);
@@ -142,9 +140,9 @@ ImageWrapper *Image::createImage(int width, int height) {
 ImageWrapper *Image::createImage(uint8_t *imageData, int width, int height, bool ownsData) {
 	return [ImageWrapper imageWithCPPImage:new Image(imageData, width, height, ownsData)];
 }
-// take a source UIImage and convert it to greyscale
-ImageWrapper *Image::createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees) {
-	return [ImageWrapper imageWithCPPImage:new Image(srcImage, width, height, imageIsRotatedBy90degrees)];
+// take a source UIImage and convert it to grayscale
+ImageWrapper *Image::createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees, int colors) {
+	return [ImageWrapper imageWithCPPImage:new Image(srcImage, width, height, imageIsRotatedBy90degrees, colors)];
 }
 
 // stretch the image brightness so that it takes the range 0-255
@@ -162,10 +160,82 @@ void Image::normalise() {
 	}
 }
 
+// invert the image polarity; object pixels become background and background, object
+void Image::invert() {
+	for(int i=0; i<m_width*m_height; i++) {
+		m_imageData[i]=255-m_imageData[i];
+	}
+}
 
-/*
+
+// binary erosion using a 3x3 square kernal
+// http://en.wikipedia.org/wiki/Erosion_(morphology)
+ImageWrapper* Image::erode() {
+	Image *result=new Image(m_width, m_height);
+	const int SESZ = 8;
+	ImagePoint structuringElement[SESZ] = {
+		ImagePoint(-1,-1), ImagePoint(0,-1), ImagePoint(1,-1),
+		ImagePoint(-1, 0),                   ImagePoint(1, 0),
+		ImagePoint(-1, 1), ImagePoint(0, 1), ImagePoint(1, 1)
+	};
+	// run erosion kernal over interior pixels using the square structuring element
+	for(int y=0; y<m_height; y++) {
+		for(int x=0; x<m_width; x++) {
+			(*result)[y][x] = (*this)[y][x]; 
+			if (y > 0 && y < m_height-1 && x > 0 && x < m_width-1) {
+				//NSLog(@"CP x=%d,y=%d,pix=%d",x,y,(*this)[y][x]);
+				for (int i=0; i<SESZ; i++) {
+					int dx = structuringElement[i].x;
+					int dy = structuringElement[i].y;
+					int neighbor = (*this)[y+dy][x+dx];
+					//NSLog(@"dx=%d, dy=%d, x=%d, y=%d, pix=%d",dx,dy,y+dy,x+dx,neighbor);
+					if ( neighbor == 0) {
+						(*result)[y][x] = 0;
+					}
+				}
+			}
+		}
+	}
+	
+	return [ImageWrapper imageWithCPPImage:result];
+}
+
+
+// binary dilation using a 3x3 square kernal
+// dilation is the dual of erosion -- the erosion of not background
+// this is a naive implementation copy-pasted from above. Think about how to refactor to remove duplicated lines.
+// The inner-most loop is the kernal that could be extracted as pointer to function.
+// http://en.wikipedia.org/wiki/Erosion_(morphology)
+ImageWrapper* Image::dilate() {
+	Image *result=new Image(m_width, m_height);
+	const int SESZ = 8;
+	ImagePoint structuringElement[SESZ] = {
+		ImagePoint(-1,-1), ImagePoint(0,-1), ImagePoint(1,-1),
+		ImagePoint(-1, 0),                   ImagePoint(1, 0),
+		ImagePoint(-1, 1), ImagePoint(0, 1), ImagePoint(1, 1)
+	};
+	// run kernal over interior pixels using the square structuring element
+	for(int y=0; y<m_height; y++) {
+		for(int x=0; x<m_width; x++) {
+			(*result)[y][x] = (*this)[y][x]; 
+			if (y > 0 && y < m_height-1 && x > 0 && x < m_width-1) {
+				for (int i=0; i<SESZ; i++) {
+					int dx = structuringElement[i].x;
+					int dy = structuringElement[i].y;
+					int neighbor = (*this)[y+dy][x+dx];
+					if ( neighbor > 0) {		//kernel
+						(*result)[y][x] = 255;	//kernel
+					}
+				}
+			}
+		}
+	}
+	
+	return [ImageWrapper imageWithCPPImage:result];
+}
+
 // recursively extract connected region - this has been replace by the non recursive version
-void Image::extractConnectedRegion(int x, int y, std::vector<short> *xpoints, std::vector<short> *ypoints) {
+/*void Image::extractConnectedRegion(int x, int y, std::vector<short> *xpoints, std::vector<short> *ypoints) {
 	// remove the current point from the image
 	(*this)[y][x]=0;
 	(*xpoints).push_back(x);
@@ -239,7 +309,7 @@ void Image::findLargestStructure(std::vector<ImagePoint> *maxPoints) {
 }
 
 
-// help function for autoLocalThreshold
+// helper for autoLocalThreshold computes average intensity of pixels in the region
 int findThresholdAtPosition(int startx, int starty, int size, Image* src) {
 	int total=0;
 	for(int y=starty; y<starty+size; y++) {
@@ -252,9 +322,9 @@ int findThresholdAtPosition(int startx, int starty, int size, Image* src) {
 };
 
 // threshold an image using a threshold that is computed at every pixel point
+// http://en.wikipedia.org/wiki/Thresholding_(image_processing)
 // This is designed for text segmentation. Dark pixels are set to 255, light pixels to 0
-ImageWrapper* Image::autoLocalThreshold() {
-	const int local_size=10;
+ImageWrapper* Image::autoLocalThreshold(const int local_size) {
 	// now produce the thresholded image
 	Image *result=new Image(m_width, m_height);
 	// process the image
@@ -273,7 +343,7 @@ ImageWrapper* Image::autoLocalThreshold() {
 	return [ImageWrapper imageWithCPPImage:result];
 }
 
-// Threshold using the average value of the image brightness
+// Threshold using the average value of the entire image intensity
 ImageWrapper *Image::autoThreshold() {
 	int total=0;
 	int count=0;
