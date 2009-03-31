@@ -35,12 +35,12 @@
 	while (aValue = [e nextObject]) {
 		if ([aValue pointValue].x < upperLeft.x) {upperLeft.x = [aValue pointValue].x;}
 		if ([aValue pointValue].y < upperLeft.y) {upperLeft.y = [aValue pointValue].y;}
-		if ([aValue pointValue].y > lowerRight.x) {lowerRight.x = [aValue pointValue].x;}
+		if ([aValue pointValue].x > lowerRight.x) {lowerRight.x = [aValue pointValue].x;}
 		if ([aValue pointValue].y > lowerRight.y) {lowerRight.y = [aValue pointValue].y;}
 	}
 	
-	answer.size.height = lowerRight.x - upperLeft.x;
-	answer.size.width = lowerRight.y - upperLeft.y;
+	answer.size.width = lowerRight.x - upperLeft.x;
+	answer.size.height = lowerRight.y - upperLeft.y;
 	answer.origin.x = upperLeft.x;
 	answer.origin.y = upperLeft.y;
 	return answer;

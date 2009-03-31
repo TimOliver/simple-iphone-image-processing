@@ -108,10 +108,10 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				38ECC3A40F82147400D665F9 /* Region.mm */,
-				38ECC3A30F82146200D665F9 /* Region.h */,
 				839D2F760F6BC9E2000E4323 /* Image.h */,
 				839D2F770F6BC9E2000E4323 /* Image.mm */,
+				38ECC3A30F82146200D665F9 /* Region.h */,
+				38ECC3A40F82147400D665F9 /* Region.mm */,
 				839D2F660F6BC9A4000E4323 /* ResultViewController.h */,
 				839D2F670F6BC9A4000E4323 /* ResultViewController.mm */,
 				839D2F600F6BC940000E4323 /* ListBundleImagesViewController.h */,
