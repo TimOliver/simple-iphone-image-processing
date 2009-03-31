@@ -6,10 +6,13 @@
 //
 // To add OCUnit on which this depends to an Xcode project, 
 // see http://www.sente.ch/s/?p=535&lang=en and http://developer.apple.com/tools/unittest.html
+// To set debugger break points in unit tests,
+// see http://developer.apple.com/mac/articles/tools/unittestingwithxcode3.html
 
 #import "TestImage.h"
 // the image.h is a mix of Objective C and C++
 #import "Image.h"
+#import "Region.h"
 
 @implementation TestImage
 
@@ -21,6 +24,7 @@
 	STAssertEquals(10, im.image->getWidth(), @"");
 	STAssertEquals(20, im.image->getHeight(), @"");
 }
+
 
 - (void)testFromBytes {
 	uint8_t imData[6] = {1,2,
@@ -106,5 +110,55 @@
 }
 
 
+// find connected regions
 
+- (void)testImageNoRegions {
+	uint8_t imData[9] = { 0,0,0, 0,0,0, 0,0,0};
+	ImageWrapper* im = Image::createImage(imData,3,3);
+	NSMutableArray* regions = [im regions];
+	int n = [regions count];
+
+	STAssertEquals(n,0,@"");	
+}
+
+- (void)testImageHavingOneRegion {
+	uint8_t imData[9] = { 1,1,1, 1,0,0, 0,0,0};
+	ImageWrapper* im = Image::createImage(imData,3,3);
+	int n = [[im regions] count];
+	STAssertEquals(n,1,@"");
+	
+}
+
+- (void)testImageHavingTwoRegions {
+	uint8_t imData[9] = { 
+		1,0,1, 
+		1,0,1, 
+		1,0,1};
+	ImageWrapper* im = Image::createImage(imData,3,3);
+	int n = [[im regions] count];
+	STAssertEquals(n,2,@"");
+}
+
+- (void)testImageHavingOneURegion {
+	uint8_t imData[9] = { 
+		1,0,1, 
+		1,0,1, 
+		1,1,1};
+	ImageWrapper* im = Image::createImage(imData,3,3);
+	int n = [[im regions] count];
+	STAssertEquals(n,1,@"");
+}
+
+- (void)testImageHavingDiagonalRegion {
+	uint8_t imData[9] = { 
+		1,0,0, 
+		0,1,0, 
+		0,0,1};
+	ImageWrapper* im = Image::createImage(imData,3,3);
+	int n = [[im regions] count];
+	STAssertEquals(n,1,@"");
+	NSRect boundingBox = [[[im regions] lastObject] bb];
+	int x = boundingBox.origin.x;
+	STAssertEquals(x,0,@"");
+}
 @end
