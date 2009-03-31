@@ -18,11 +18,16 @@ class Image;
 	Image *image;
 	// do we own the image - ie should we delete it when we dealloc
 	bool ownsImage;
+
 }
+
 
 @property(assign, nonatomic) Image *image;
 @property(assign, nonatomic) bool ownsImage;
 + (ImageWrapper *) imageWithCPPImage:(Image *) theImage;
+
+// extract all connected regions from the image
+- (NSMutableArray*) regions;
 
 @end
 
@@ -72,9 +77,8 @@ private:
 	Image(int width, int height);
 	Image(uint8_t *imageData, int width, int height, bool ownsData=false);
 	Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false,int colors);
-public:
 
-	
+public:
 	
 	// destructor
 	~Image() {
@@ -102,8 +106,10 @@ public:
 	ImageWrapper *autoThreshold();
 	// gaussian smooth the image
 	ImageWrapper *gaussianBlur();
-	// exrtact a connected area from the image
+	// extract a connected area from the image
 	void extractConnectedRegion(int x, int y, std::vector<ImagePoint> *points);
+
+
 	// find the largest connected region in the image
 	void findLargestStructure(std::vector<ImagePoint> *maxPoints);
 	// normalise an image
@@ -112,7 +118,7 @@ public:
 	ImageWrapper *resize(int newX, int newY);
 	// histogram equalisation
 	void HistogramEqualisation();
-	// skeltonize
+	// skeletonize
 	void skeletonise();
 	// invert pixels
 	void invert();

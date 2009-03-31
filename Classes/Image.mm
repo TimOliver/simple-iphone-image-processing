@@ -6,7 +6,8 @@
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
-#include "Image.h"
+#import "Image.h"
+#import "Region.h"
 #include <stack>
 
 @implementation ImageWrapper
@@ -32,6 +33,35 @@
 	return [wrapper autorelease];
 }
 
+// extract all connected regions from the image
+// this probably belongs on Image not the wrapper
+- (NSMutableArray*) regions
+{
+	NSMutableArray* answer = [NSMutableArray arrayWithCapacity: 10];
+	// process the image building Regions from point vector
+	// note that the process is destructive in that it marks all pixels foreground in the image
+	std::vector<ImagePoint> points;
+	for(int y=0; y<image->getWidth(); y++) {
+		for(int x=0; x<image->getHeight(); x++) {
+			// if we've found a point in the image then extract everything connected to it
+			if(image->atXY(x,y)!=0) {
+				image->extractConnectedRegion(x, y, &points);
+				// construct a Region from these points
+				std::vector<ImagePoint>::const_iterator pi;
+				Region* region = [Region new];
+				for(pi=points.begin(); pi!=points.end(); pi++)
+				{
+					[region addPoint: NSMakePoint(pi->x,pi->y)];
+				}
+				[answer addObject: region];
+				points.clear();
+			}
+		}
+	}
+	return answer;
+}
+
+
 // cleanup
 - (void) dealloc
 {
@@ -39,7 +69,6 @@
 	if(ownsImage) delete image;
 	[super dealloc];
 }
-
 
 @end
 
