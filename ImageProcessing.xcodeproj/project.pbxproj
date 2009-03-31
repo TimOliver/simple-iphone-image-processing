@@ -22,6 +22,9 @@
 		3808B6EA0F7F62F0004A0F75 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DF5F4DF0D08C38300B7A737 /* UIKit.framework */; };
 		3808B6EC0F7F630D004A0F75 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2892E40F0DC94CBA00A64D0F /* CoreGraphics.framework */; };
 		38ECBE940F816BEB00D665F9 /* elmo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 38ECBE930F816BEB00D665F9 /* elmo.jpg */; };
+		38ECC3A50F82147400D665F9 /* Region.mm in Sources */ = {isa = PBXBuildFile; fileRef = 38ECC3A40F82147400D665F9 /* Region.mm */; };
+		38ECC3A60F82147400D665F9 /* Region.mm in Sources */ = {isa = PBXBuildFile; fileRef = 38ECC3A40F82147400D665F9 /* Region.mm */; };
+		38ECC3A90F8214A000D665F9 /* TestRegion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 38ECC3A80F8214A000D665F9 /* TestRegion.mm */; };
 		839D2F5F0F6BC914000E4323 /* MainWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 839D2F5E0F6BC914000E4323 /* MainWindow.xib */; };
 		839D2F620F6BC940000E4323 /* ListBundleImagesViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 839D2F610F6BC940000E4323 /* ListBundleImagesViewController.mm */; };
 		839D2F650F6BC984000E4323 /* ResultViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 839D2F640F6BC984000E4323 /* ResultViewController.xib */; };
@@ -60,6 +63,10 @@
 		3808B6DF0F7F6179004A0F75 /* TestImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestImage.h; sourceTree = "<group>"; };
 		3808B6E00F7F6193004A0F75 /* r50g100b200.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = r50g100b200.png; sourceTree = "<group>"; };
 		38ECBE930F816BEB00D665F9 /* elmo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = elmo.jpg; sourceTree = "<group>"; };
+		38ECC3A30F82146200D665F9 /* Region.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Region.h; sourceTree = "<group>"; };
+		38ECC3A40F82147400D665F9 /* Region.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Region.mm; sourceTree = "<group>"; };
+		38ECC3A70F82148E00D665F9 /* TestRegion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestRegion.h; sourceTree = "<group>"; };
+		38ECC3A80F8214A000D665F9 /* TestRegion.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestRegion.mm; sourceTree = "<group>"; };
 		839D2F5E0F6BC914000E4323 /* MainWindow.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MainWindow.xib; sourceTree = "<group>"; };
 		839D2F600F6BC940000E4323 /* ListBundleImagesViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ListBundleImagesViewController.h; sourceTree = "<group>"; };
 		839D2F610F6BC940000E4323 /* ListBundleImagesViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ListBundleImagesViewController.mm; sourceTree = "<group>"; };
@@ -101,6 +108,8 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				38ECC3A40F82147400D665F9 /* Region.mm */,
+				38ECC3A30F82146200D665F9 /* Region.h */,
 				839D2F760F6BC9E2000E4323 /* Image.h */,
 				839D2F770F6BC9E2000E4323 /* Image.mm */,
 				839D2F660F6BC9A4000E4323 /* ResultViewController.h */,
@@ -176,6 +185,8 @@
 		3808B6DA0F7F614E004A0F75 /* Test Cases */ = {
 			isa = PBXGroup;
 			children = (
+				38ECC3A80F8214A000D665F9 /* TestRegion.mm */,
+				38ECC3A70F82148E00D665F9 /* TestRegion.h */,
 				3808B6DF0F7F6179004A0F75 /* TestImage.h */,
 				3808B6DD0F7F616A004A0F75 /* TestImage.mm */,
 			);
@@ -297,6 +308,7 @@
 				839D2F620F6BC940000E4323 /* ListBundleImagesViewController.mm in Sources */,
 				839D2F680F6BC9A4000E4323 /* ResultViewController.mm in Sources */,
 				839D2F780F6BC9E2000E4323 /* Image.mm in Sources */,
+				38ECC3A50F82147400D665F9 /* Region.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -306,6 +318,8 @@
 			files = (
 				3808B6DE0F7F616A004A0F75 /* TestImage.mm in Sources */,
 				3808B6E80F7F62BA004A0F75 /* Image.mm in Sources */,
+				38ECC3A60F82147400D665F9 /* Region.mm in Sources */,
+				38ECC3A90F8214A000D665F9 /* TestRegion.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
