@@ -6,6 +6,9 @@
 //  Copyright 2009 Wosterware.com. All rights reserved.
 //
 
+#include "TargetConditionals.h"
+#if !TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+
 #import "TestRegion.h"
 #import "Region.h"
 
@@ -29,6 +32,8 @@
 	[r addPoint: NSMakePoint(12,23)];
 	
 	STAssertEquals(200,[r area],@"");
+	int n = [[r points] count];
+	STAssertEquals(2, n,@"");
 }
 
 - (void)testSmallRegionReversed {
@@ -44,7 +49,6 @@
 
 	STAssertEquals(200,[r area],@"");
 
-
 }
 
 - (void)testSmallRegionOutlier {
@@ -57,9 +61,19 @@
 	STAssertEquals(100-5,w,@"");
 	int h = r.bb.size.height;
 	STAssertEquals(23-3,h,@"");
+}
 
+- (void)testSmallDiag {
+	Region* r = [Region new];
+	[r addPoint: NSMakePoint(1,1)];
+	[r addPoint: NSMakePoint(2,2)];
 	
-	
+	int w = r.bb.size.width;
+	STAssertEquals(1,w,@"");
+	int h = r.bb.size.height;
+	STAssertEquals(1,h,@"");
 }
 
 @end
+
+#endif

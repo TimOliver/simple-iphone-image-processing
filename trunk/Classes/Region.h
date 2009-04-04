@@ -19,5 +19,6 @@
 
 // add a point to the region
 - (void) addPoint: (NSPoint) p;
+- (NSMutableArray*) points;
 
 @end
