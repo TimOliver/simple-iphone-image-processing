@@ -23,7 +23,7 @@
 // answer the bounding box for the region
 - (NSRect) bb {
 	NSRect answer = { {0, 0}, {0, 0}};
-	if (points.count < 2) {
+	if ([points count] < 2) {
 		return answer;
 	}
 
@@ -38,7 +38,7 @@
 		if ([aValue pointValue].x > lowerRight.x) {lowerRight.x = [aValue pointValue].x;}
 		if ([aValue pointValue].y > lowerRight.y) {lowerRight.y = [aValue pointValue].y;}
 	}
-	
+
 	answer.size.width = lowerRight.x - upperLeft.x;
 	answer.size.height = lowerRight.y - upperLeft.y;
 	answer.origin.x = upperLeft.x;
@@ -50,5 +50,7 @@
 - (void) addPoint: (NSPoint) p {
 	[points addObject: [NSValue valueWithPoint:p]];
 }
-
+- (NSMutableArray*) points {
+	return points;
+}
 @end
