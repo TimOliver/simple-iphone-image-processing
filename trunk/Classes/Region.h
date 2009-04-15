@@ -7,7 +7,14 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <CoreGraphics/CGGeometry.h>
+#import <UIKit/UIGeometry.h>
 
+typedef CGPoint NSPoint;
+typedef CGRect NSRect;
+#define NSMakePoint CGPointMake
+#define pointValue CGPointValue
+#define valueWithPoint valueWithCGPoint
 
 @interface Region : NSObject {
 	NSMutableArray* points;
