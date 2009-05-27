@@ -76,7 +76,7 @@ private:
 	Image(ImageWrapper *other, int x1, int y1, int x2, int y2);
 	Image(int width, int height);
 	Image(uint8_t *imageData, int width, int height, bool ownsData=false);
-	Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false,int colors);
+	Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false,int colors=kGreen);
 
 public:
 	

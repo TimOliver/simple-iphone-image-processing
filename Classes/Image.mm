@@ -109,7 +109,7 @@ Image::Image(uint8_t *imageData, int width, int height, bool ownsData) {
 }
 
 // convert from a UIImage to a grey scale image by averaging red green blue
-Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees, int colors=kGreen) {
+Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees, int colors) {
 	NSDate *start=[NSDate date];
 	if(imageIsRotatedBy90degrees) {
 		int tmp=width;
