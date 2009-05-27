@@ -232,6 +232,7 @@
 				GCC_PREFIX_HEADER = ImageProcessing_Prefix.pch;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = ImageProcessing;
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "B9B8F8C0-A884-4E6C-8A38-CA69BA74A375";
 			};
 			name = Debug;
 		};
