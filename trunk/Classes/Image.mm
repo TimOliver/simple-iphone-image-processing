@@ -6,8 +6,7 @@
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
-#import "Image.h"
-#import "Region.h"
+#include "Image.h"
 #include <stack>
 
 @implementation ImageWrapper
@@ -15,7 +14,6 @@
 @synthesize image;
 @synthesize ownsImage;
 
-// creates an Objective-C wrapper around a C++ image
 + (ImageWrapper *) imageWithCPPImage:(Image *) theImage;
 {
 	ImageWrapper *wrapper = [[ImageWrapper alloc] init];
@@ -24,7 +22,6 @@
 	return [wrapper autorelease];
 }
 
-// override to specify if the wrapper should take ownership of the C++ image
 + (ImageWrapper *) imageWithCPPImage:(Image *) theImage ownsImage:(bool) ownsTheImage;
 {
 	ImageWrapper *wrapper = [[ImageWrapper alloc] init];
@@ -33,40 +30,6 @@
 	return [wrapper autorelease];
 }
 
-// extract all connected regions from the image
-// this probably belongs on Image not the wrapper
-- (NSMutableArray*) regions
-{
-	NSMutableArray* answer = [NSMutableArray arrayWithCapacity: 10];
-	// process the image building Regions from point vector
-	// note that the process is destructive in that it marks all pixels foreground in the image
-	std::vector<ImagePoint> points;
-	int w = image->getWidth();
-	int h = image->getHeight();
-	for(int y=0; y<h; y++) {
-		for(int x=0; x<w; x++) {
-			// if we've found a point in the image then extract everything connected to it
-			if(image->atXY(x,y)!=0) {
-				image->extractConnectedRegion(x, y, &points);
-				// construct a Region from these points
-				std::vector<ImagePoint>::const_iterator pi;
-				Region* region = [Region new];
-				for(pi=points.begin(); pi!=points.end(); pi++)
-				{
-					[region addPoint: NSMakePoint(pi->x,pi->y)];
-					//NSLog(@"added point %d p.x=%d p.y=%d",[ [region points] count],pi->x,pi->y);
-				}
-				[answer addObject: region];
-				//NSLog(@"region %d points at x=%f y=%f width=%f height=%f area=%d", [[region points] count], [region bb].origin.x, [region bb].origin.y, [region bb].size.width, [region bb].size.height, [region area]); 
-				points.clear();
-			}
-		}
-	}
-	return answer;
-}
-
-
-// cleanup
 - (void) dealloc
 {
 	// delete the image that we have been holding onto
@@ -74,15 +37,22 @@
 	[super dealloc];
 }
 
+
 @end
 
-// these constructors are all private. Use the helper function defined below to create images
+void Image::initYptrs() {
+	m_yptrs=(uint8_t **) malloc(sizeof(uint8_t *)*m_height);
+	for(int i=0; i<m_height; i++) {
+		m_yptrs[i]=m_imageData+i*m_width;
+	}
+}
 
-// extract a region of an image to a new image
+
 Image::Image(ImageWrapper *other, int x1, int y1, int x2, int y2) {
 	m_width=x2-x1;
 	m_height=y2-y1;
 	m_imageData=(uint8_t *) malloc(m_width*m_height);
+	initYptrs();
 	Image *otherImage=other.image;
 	for(int y=y1; y<y2; y++) {
 		for(int x=x1; x<x2; x++) {
@@ -92,25 +62,23 @@ Image::Image(ImageWrapper *other, int x1, int y1, int x2, int y2) {
 	m_ownsData=true;
 }
 
-// create an empty image - note, memory is not intialised to zero
 Image::Image(int width, int height) {
 	m_imageData=(uint8_t *) malloc(width*height);
 	m_width=width;
 	m_height=height;
 	m_ownsData=true;
+	initYptrs();
 }
-
 // create an image from data
 Image::Image(uint8_t *imageData, int width, int height, bool ownsData) {
 	m_imageData=imageData;
 	m_width=width;
 	m_height=height;
 	m_ownsData=ownsData;
+	initYptrs();
 }
 
-// convert from a UIImage to a grey scale image by averaging red green blue
-Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees, int colors) {
-	NSDate *start=[NSDate date];
+Image::Image(UIImage *srcImage, int width, int height,  CGInterpolationQuality interpolation, bool imageIsRotatedBy90degrees) {
 	if(imageIsRotatedBy90degrees) {
 		int tmp=width;
 		width=height;
@@ -119,30 +87,15 @@ Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90de
 	m_width=width;
 	m_height=height;
 	// get hold of the image bytes
-	uint32_t *rgbImage=(uint32_t *) malloc(m_width*m_height*sizeof(uint32_t));
-	CGColorSpaceRef colorSpace=CGColorSpaceCreateDeviceRGB();
-	CGContextRef context=CGBitmapContextCreate(rgbImage,  m_width, m_height, 8, m_width*4, colorSpace, kCGBitmapByteOrder32Little|kCGImageAlphaNoneSkipLast);
-	CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+	m_imageData=(uint8_t *) malloc(m_width*m_height);
+	CGColorSpaceRef colorSpace=CGColorSpaceCreateDeviceGray();
+	CGContextRef context=CGBitmapContextCreate(m_imageData,  m_width, m_height, 8, m_width, colorSpace, kCGImageAlphaNone);
+	CGContextSetInterpolationQuality(context, interpolation);
 	CGContextSetShouldAntialias(context, NO);
 	CGContextDrawImage(context, CGRectMake(0,0, m_width, m_height), [srcImage CGImage]);
 	CGContextRelease(context);
 	CGColorSpaceRelease(colorSpace);
 	
-	start=[NSDate date];
-	// now convert to grayscale
-	m_imageData=(uint8_t *) malloc(m_width*m_height);
-	m_ownsData=true;
-	for(int y=0; y<m_height; y++) {
-		for(int x=0; x<m_width; x++) {
-			uint32_t rgbPixel=rgbImage[y*m_width+x];
-			uint32_t sum=0,count=0;
-			if (colors & kRed) {sum += (rgbPixel>>24)&255; count++;}
-			if (colors & kGreen) {sum += (rgbPixel>>16)&255; count++;}
-			if (colors & kBlue) {sum += (rgbPixel>>8)&255; count++;}
-			m_imageData[y*m_width+x]=sum/count;
-		}
-	}
-	free(rgbImage);
 	if(imageIsRotatedBy90degrees) {
 		uint8_t *tmpImage=(uint8_t *) malloc(m_width*m_height);
 		for(int y=0; y<m_height; y++) {
@@ -156,9 +109,22 @@ Image::Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90de
 		free(m_imageData);
 		m_imageData=tmpImage;
 	}
+	initYptrs();
 }
 
-// helper functions - use these to create images. They will give you an autoreleased Objective-C wrapper for easier memory handling
+void Image::normalise() {
+	int min=INT_MAX;
+	int max=0;
+	
+	for(int i=0; i<m_width*m_height; i++) {
+		if(m_imageData[i]>max) max=m_imageData[i];
+		if(m_imageData[i]<min) min=m_imageData[i];
+	}
+	for(int i=0; i<m_width*m_height; i++) {
+		m_imageData[i]=255*(m_imageData[i]-min)/(max-min);
+	}
+}
+
 
 // copy a section of another image
 ImageWrapper *Image::createImage(ImageWrapper *other, int x1, int y1, int x2, int y2)
@@ -173,177 +139,40 @@ ImageWrapper *Image::createImage(int width, int height) {
 ImageWrapper *Image::createImage(uint8_t *imageData, int width, int height, bool ownsData) {
 	return [ImageWrapper imageWithCPPImage:new Image(imageData, width, height, ownsData)];
 }
-// take a source UIImage and convert it to grayscale
-ImageWrapper *Image::createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees, int colors) {
-	return [ImageWrapper imageWithCPPImage:new Image(srcImage, width, height, imageIsRotatedBy90degrees, colors)];
+// take a source UIImage and convert it to greyscale
+ImageWrapper *Image::createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees) {
+	return [ImageWrapper imageWithCPPImage:new Image(srcImage, width, height, kCGInterpolationHigh, imageIsRotatedBy90degrees)];
 }
 
-// stretch the image brightness so that it takes the range 0-255
-// http://en.wikipedia.org/wiki/Normalization_(image_processing)
-void Image::normalise() {
-	int min=INT_MAX;
-	int max=0;
-	
-	for(int i=0; i<m_width*m_height; i++) {
-		if(m_imageData[i]>max) max=m_imageData[i];
-		if(m_imageData[i]<min) min=m_imageData[i];
-	}
-	for(int i=0; i<m_width*m_height; i++) {
-		m_imageData[i]=255*(m_imageData[i]-min)/(max-min);
-	}
-}
-
-// invert the image polarity; object pixels become background and background, object
-void Image::invert() {
-	for(int i=0; i<m_width*m_height; i++) {
-		m_imageData[i]=255-m_imageData[i];
-	}
-}
-
-
-// binary erosion using a 3x3 square kernal
-// http://en.wikipedia.org/wiki/Erosion_(morphology)
-ImageWrapper* Image::erode() {
-	Image *result=new Image(m_width, m_height);
-	const int SESZ = 8;
-	ImagePoint structuringElement[SESZ] = {
-		ImagePoint(-1,-1), ImagePoint(0,-1), ImagePoint(1,-1),
-		ImagePoint(-1, 0),                   ImagePoint(1, 0),
-		ImagePoint(-1, 1), ImagePoint(0, 1), ImagePoint(1, 1)
-	};
-	// run erosion kernal over interior pixels using the square structuring element
-	for(int y=0; y<m_height; y++) {
-		for(int x=0; x<m_width; x++) {
-			(*result)[y][x] = (*this)[y][x]; 
-			if (y > 0 && y < m_height-1 && x > 0 && x < m_width-1) {
-				//NSLog(@"CP x=%d,y=%d,pix=%d",x,y,(*this)[y][x]);
-				for (int i=0; i<SESZ; i++) {
-					int dx = structuringElement[i].x;
-					int dy = structuringElement[i].y;
-					int neighbor = (*this)[y+dy][x+dx];
-					//NSLog(@"dx=%d, dy=%d, x=%d, y=%d, pix=%d",dx,dy,y+dy,x+dx,neighbor);
-					if ( neighbor == 0) {
-						(*result)[y][x] = 0;
-					}
-				}
-			}
-		}
-	}
-	
-	return [ImageWrapper imageWithCPPImage:result];
-}
-
-
-// binary dilation using a 3x3 square kernal
-// dilation is the dual of erosion -- the erosion of not background
-// this is a naive implementation copy-pasted from above. Think about how to refactor to remove duplicated lines.
-// The inner-most loop is the kernal that could be extracted as pointer to function.
-// http://en.wikipedia.org/wiki/Erosion_(morphology)
-ImageWrapper* Image::dilate() {
-	Image *result=new Image(m_width, m_height);
-	const int SESZ = 8;
-	ImagePoint structuringElement[SESZ] = {
-		ImagePoint(-1,-1), ImagePoint(0,-1), ImagePoint(1,-1),
-		ImagePoint(-1, 0),                   ImagePoint(1, 0),
-		ImagePoint(-1, 1), ImagePoint(0, 1), ImagePoint(1, 1)
-	};
-	// run kernal over interior pixels using the square structuring element
-	for(int y=0; y<m_height; y++) {
-		for(int x=0; x<m_width; x++) {
-			(*result)[y][x] = (*this)[y][x]; 
-			if (y > 0 && y < m_height-1 && x > 0 && x < m_width-1) {
-				for (int i=0; i<SESZ; i++) {
-					int dx = structuringElement[i].x;
-					int dy = structuringElement[i].y;
-					int neighbor = (*this)[y+dy][x+dx];
-					if ( neighbor > 0) {		//kernel
-						(*result)[y][x] = 255;	//kernel
-					}
-				}
-			}
-		}
-	}
-	
-	return [ImageWrapper imageWithCPPImage:result];
-}
-
-// recursively extract connected region - this has been replace by the non recursive version
-/*void Image::extractConnectedRegion(int x, int y, std::vector<short> *xpoints, std::vector<short> *ypoints) {
-	// remove the current point from the image
-	(*this)[y][x]=0;
-	(*xpoints).push_back(x);
-	(*ypoints).push_back(y);
-	for(int ypos=y-1; ypos<=y+1; ypos++) {
-		for(int xpos=x-1; xpos<=x+1; xpos++) {
-			if(xpos>0 && ypos>0 && xpos<getWidth() && ypos<getHeight() && (*this)[ypos][xpos]!=0) {
-				extractConnectedRegion(xpos, ypos, xpoints, ypoints);
-			}
-		}
-	}
-}
-*/
-
-// extract a connected region from an image - this uses a non-recursive algorithm to prevent us running out of stack
-// space when extracting very large regions
 void Image::extractConnectedRegion(int x, int y, std::vector<ImagePoint> *points) {
-	
-	// remove the current point from the image
-	(*this)[y][x]=0;
 	(*points).push_back(ImagePoint(x,y));
-	
-	std::stack<ImagePoint> myStack;
-	std::stack<short> stackXpos;
-	std::stack<short> stackYpos;
-	myStack.push(ImagePoint(x,y));
-	while(myStack.size()>0) {
-		// get the entry at the top of the stack
-		x=myStack.top().x;
-		y=myStack.top().y;
-		myStack.pop();
-		// check the surrounding region for other points
-		for(int ypos=y-1; ypos<=y+1; ypos++) {
-			for(int xpos=x-1; xpos<=x+1; xpos++) {
-				if(xpos>=0 && ypos>=0 && xpos<getWidth() && ypos<getHeight() && (*this)[ypos][xpos]!=0) {
-					// found a point - add it to the list of points and change the x and y to reflect this new point
-					(*points).push_back(ImagePoint(xpos,ypos));
-					(*this)[ypos][xpos]=0;
-					// push the current x and y onto the stack
-					myStack.push(ImagePoint(x,y));
-					// x and y are the new x and y
-					x=xpos;
-					y=ypos;
-					// reset the loop counter
-					ypos=y-1;
-					xpos=x-1;
-				}
+	(*this)[y][x]=0;
+	int left, right;
+	left=x-1;
+	right=x+1;
+	while(left>=0 && (*this)[y][left]!=0) {
+		(*this)[y][left]=0;
+		(*points).push_back(ImagePoint(left,y));		
+		left--;
+	}
+	while(right<m_width && (*this)[y][right]!=0) {
+		(*this)[y][right]=0;
+		(*points).push_back(ImagePoint(right,y));		
+		right++;
+	}
+	for(int i=left; i<=right; i++) {
+		if(i>=0 && i<m_width) {
+			if(y>0 && (*this)[y-1][i]!=0) {
+				extractConnectedRegion(i, y-1, points);
+			}
+			if(y<(m_height-1) && (*this)[y+1][i]!=0) {
+				extractConnectedRegion(i, y+1, points);
 			}
 		}
 	}
 }
 
-// find the largest structure in a thresholded image
-void Image::findLargestStructure(std::vector<ImagePoint> *maxPoints) {
-	// process the image
-	std::vector<ImagePoint> points;
-	for(int y=0; y<m_height; y++) {
-		for(int x=0; x<m_width; x++) {
-			// if we've found a point in the image then extract everything connected to it
-			if((*this)[y][x]!=0) {
-				extractConnectedRegion(x, y, &points);
-				if(points.size()>maxPoints->size()) {
-					maxPoints->clear();
-					maxPoints->resize(points.size());
-					std::copy(points.begin(), points.end(), maxPoints->begin());
-				} 
-				points.clear();
-			}
-		}
-	}
-}
-
-
-// helper for autoLocalThreshold computes average intensity of pixels in the region
-int findThresholdAtPosition(int startx, int starty, int size, Image* src) {
+inline int findThresholdAtPosition(int startx, int starty, int size, Image* src) {
 	int total=0;
 	for(int y=starty; y<starty+size; y++) {
 		for(int x=startx; x<startx+size; x++) {
@@ -354,10 +183,9 @@ int findThresholdAtPosition(int startx, int starty, int size, Image* src) {
 	return threshold;
 };
 
-// threshold an image using a threshold that is computed at every pixel point
-// http://en.wikipedia.org/wiki/Thresholding_(image_processing)
-// This is designed for text segmentation. Dark pixels are set to 255, light pixels to 0
-ImageWrapper* Image::autoLocalThreshold(const int local_size) {
+/*
+ImageWrapper* Image::autoLocalThreshold() {
+	const int local_size=10;
 	// now produce the thresholded image
 	Image *result=new Image(m_width, m_height);
 	// process the image
@@ -366,7 +194,6 @@ ImageWrapper* Image::autoLocalThreshold(const int local_size) {
 		for(int x=local_size/2; x<m_width-local_size/2; x++) {
 			threshold=findThresholdAtPosition(x-local_size/2, y-local_size/2, local_size, this);
 			int val=(*this)[y][x];
-			// to remove noise we only accept pixels that are less than 90% of the threshold
 			if(val>threshold*0.9)
 					(*result)[y][x]=0;
 				else
@@ -375,8 +202,37 @@ ImageWrapper* Image::autoLocalThreshold(const int local_size) {
 	}
 	return [ImageWrapper imageWithCPPImage:result];
 }
+*/
 
-// Threshold using the average value of the entire image intensity
+
+ImageWrapper* Image::autoLocalThreshold() {
+	const int local_size=8;
+	// now produce the thresholded image
+	uint8_t *result=(uint8_t*) malloc(m_width*m_height);
+	// get the initial total
+	int total=0;
+	for(int y=0; y<local_size; y++) {
+		for(int x=0; x<local_size; x++) {
+			total+=(*this)[y][x];
+		}
+	}
+	// process the image
+	int lastIndex=m_width*m_height-(m_width*local_size/2+local_size/2);
+	for(int index=m_width*local_size/2+local_size/2; index<lastIndex; index++) {
+		int threshold=total/64;
+		if(m_imageData[index]>threshold*0.9)
+			result[index]=0;
+		else
+			result[index]=255;
+		// calculate the new total
+		for(int index2=index-m_width*local_size/2-local_size/2; index2<index+m_width*local_size/2-local_size/2; index2+=m_width) {
+			total-=m_imageData[index2];
+			total+=m_imageData[index2+local_size];
+		}
+	}
+	return Image::createImage(result, m_width, m_height, true);
+}
+
 ImageWrapper *Image::autoThreshold() {
 	int total=0;
 	int count=0;
@@ -390,7 +246,7 @@ ImageWrapper *Image::autoThreshold() {
 	Image *result=new Image(m_width, m_height);
 	for(int y=0; y<m_height; y++) {
 		for(int x=0; x<m_width; x++) {
-			if((*this)[y][x]>threshold*0.9) {
+			if((*this)[y][x]>threshold*0.8) {
 				(*result)[y][x]=0;
 			} else {
 				(*result)[y][x]=255;
@@ -399,43 +255,6 @@ ImageWrapper *Image::autoThreshold() {
 	}
 	return [ImageWrapper imageWithCPPImage:result];
 }
-
-
-// skeletonise an image
-void Image::skeletonise() {
-	bool changes=true;
-	while(changes) {
-		changes=false;
-		for(int y=1; y<m_height-1; y++) {
-			for(int x=1; x<m_width-1; x++) {
-				if((*this)[y][x]!=0) {
-					bool val[8];
-					val[0]=(*this)[y-1][x-1]!=0;
-					val[1]=(*this)[y-1][x]!=0;
-					val[2]=(*this)[y-1][x+1]!=0;
-					val[3]=(*this)[y][x+1]!=0;
-					val[4]=(*this)[y+1][x+1]!=0;
-					val[5]=(*this)[y+1][x]!=0;
-					val[6]=(*this)[y+1][x-1]!=0;
-					val[7]=(*this)[y][x-1]!=0;
-					
-					bool remove=false;
-					for(int i=0; i<7 && !remove;i++) {
-						remove=(val[(0+i)%8] && val[(1+i)%8] && val[(7+i)%8] && val[(6+i)%8] && val[(5+i)%8] && !(val[(2+i)%8] || val[(3+i)%8] || val[(4+i)%8]))
-						|| (val[(0+i)%8] && val[(1+i)%8] && val[(7+i)%8] && !(val[(3+i)%8] || val[(6+i)%8] || val[(5+i)%8] || val[(4+i)%8])) ||
-						!(val[(0+i)%8] || val[(1+i)%8] || val[(2+i)%8]  || val[(3+i)%8]  || val[(4+i)%8]  || val[(5+i)%8]  || val[(6+i)%8] || val[(7+i)%8]);
-					}
-					if(remove) {
-						(*this)[y][x]=0;
-						changes=true;
-					}
-				}
-			}
-		}
-	}
-}
-
-// Canny edge detection - this code is a bit of a mess
 
 #define NOEDGE 255
 #define POSSIBLE_EDGE 128
@@ -759,14 +578,10 @@ void apply_hysteresis(int *mag, uint8_t *nms, int rows, int cols,
 }
 
 /*
- Canny edge detection - http://en.wikipedia.org/wiki/Canny_edge_detector
-
- These are suitable values for tlow and thigh:
- tlow 0.20-0.50
- thigh 0.60-0.90
+tlow 0.20-0.50
+thigh 0.60-0.90
 */
 ImageWrapper *Image::cannyEdgeExtract(float tlow, float thigh) {
-	// masks for sobel edge detection
 	int gx[3][3]={ 
 		{ -1, 0, 1 },
 		{ -2, 0, 2 },
@@ -784,7 +599,7 @@ ImageWrapper *Image::cannyEdgeExtract(float tlow, float thigh) {
 	memset(diffy, 0, sizeof(int)*resultHeight*resultWidth);
 	memset(mag, 0, sizeof(int)*resultHeight*resultWidth);
 	
-	// compute the magnitute and the x and y differences in the image
+	// compute the magnitute and the angles in the image
 	for(int y=0; y<m_height-3; y++) {
 		for(int x=0; x<m_width-3; x++) {
 			int resultX=0;
@@ -819,7 +634,36 @@ ImageWrapper *Image::cannyEdgeExtract(float tlow, float thigh) {
 	return [ImageWrapper imageWithCPPImage:result];	
 }
 
-// smooth an image using gaussian blur - required before performing canny edge detection
+// rotate by 90, 180, 270, 360
+ImageWrapper *Image::rotate(int angle) {
+	Image* result;
+	switch(angle) {
+		case 90:
+		case 270:
+			result=new Image(m_height, m_width);
+			break;
+		case 180:
+			result=new Image(m_width, m_height);
+			break;
+	}
+	for(int y=0; y< m_height; y++) {
+		for(int x=0; x<m_width; x++) {
+			switch(angle) {
+				case 90:
+					(*result)[m_width-x-1][y]=(*this)[y][x];
+					break;
+				case 180:
+					(*result)[m_height-y-1][x]=(*this)[y][x];
+					break;
+				case 270:
+					(*result)[x][y]=(*this)[y][x];
+					break;
+			}
+		}
+	}
+	return [ImageWrapper imageWithCPPImage:result];
+}
+
 ImageWrapper *Image::gaussianBlur() {
 	int blur[5][5]={ 
 		{ 1, 4, 7, 4, 1 },
@@ -844,8 +688,7 @@ ImageWrapper *Image::gaussianBlur() {
 	return [ImageWrapper imageWithCPPImage:result];	
 }
 
-// Histogram equalisation
-// http://en.wikipedia.org/wiki/Histogram_equalisation
+
 void Image::HistogramEqualisation() {
 	std::vector<int> pdf(256);
 	std::vector<int> cdf(256);
@@ -864,7 +707,6 @@ void Image::HistogramEqualisation() {
 	}
 }
 
-// convert from a gray scale image back into a UIImage
 UIImage *Image::toUIImage() {
 	// generate space for the result
 	uint8_t *result=(uint8_t *) calloc(m_width*m_height*sizeof(uint32_t),1);
@@ -889,20 +731,18 @@ UIImage *Image::toUIImage() {
 	return resultUIImage;
 }
 
-// helper functions for resizing
-float Image::Interpolate1(float a, float b, float c) {
+inline float Interpolate1(float a, float b, float c) {
 	float mu=c-floor(c);
 	return(a*(1-mu)+b*mu);
 }
 
-float Image::Interpolate2(float a, float b, float c, float d, float x, float y)
+inline float Interpolate2(float a, float b, float c, float d, float x, float y)
 {
 	float ab = Interpolate1(a,b,x);
 	float cd = Interpolate1(c,d,x);
 	return Interpolate1(ab,cd,y);
 }
 
-// shrink or stretch an image
 ImageWrapper *Image::resize(int newX, int newY) {
 	Image *result=new Image(newX, newY);
 	for(float y=0; y<newY; y++) {
@@ -926,3 +766,74 @@ ImageWrapper *Image::resize(int newX, int newY) {
 	return [ImageWrapper imageWithCPPImage:result];
 }
 
+void Image::findLargestStructure(std::vector<ImagePoint> *maxPoints) {
+	// process the image
+	std::vector<ImagePoint> points;
+	points.reserve(10000);
+	for(int y=0; y<m_height; y++) {
+		for(int x=0; x<m_width; x++) {
+			// if we've found a point in the image then extract everything connected to it
+			if((*this)[y][x]!=0) {
+				extractConnectedRegion(x, y, &points);
+				if(points.size()>maxPoints->size()) {
+					maxPoints->clear();
+					maxPoints->resize(points.size());
+					std::copy(points.begin(), points.end(), maxPoints->begin());
+				} 
+				points.clear();
+			}
+		}
+	}
+}
+
+int findHeightAtX(Image *img, int x) {	
+	// find the top most set pixel
+	bool foundTop;
+	int topY=0;
+	for(;topY<img->getHeight(); topY++) {
+		if((*img)[topY][x]==0) {
+			foundTop=true;
+			break;
+		}
+	}
+	if(foundTop) {
+		// find the bottom most set pixel
+		int bottomY=img->getHeight()-1;
+		for(;bottomY>0 && (*img)[bottomY][x]==0; bottomY--);
+		return bottomY-topY;
+	}
+	return -1;
+}
+
+void Image::skeletonise() {
+	bool changes=true;
+	while(changes) {
+		changes=false;
+		for(int y=1; y<m_height-1; y++) {
+			for(int x=1; x<m_width-1; x++) {
+				if((*this)[y][x]!=0) {
+					bool val[8];
+					val[0]=(*this)[y-1][x-1]!=0;
+					val[1]=(*this)[y-1][x]!=0;
+					val[2]=(*this)[y-1][x+1]!=0;
+					val[3]=(*this)[y][x+1]!=0;
+					val[4]=(*this)[y+1][x+1]!=0;
+					val[5]=(*this)[y+1][x]!=0;
+					val[6]=(*this)[y+1][x-1]!=0;
+					val[7]=(*this)[y][x-1]!=0;
+					
+					bool remove=false;
+					for(int i=0; i<7 && !remove;i++) {
+						remove=(val[(0+i)%8] && val[(1+i)%8] && val[(7+i)%8] && val[(6+i)%8] && val[(5+i)%8] && !(val[(2+i)%8] || val[(3+i)%8] || val[(4+i)%8]))
+								|| (val[(0+i)%8] && val[(1+i)%8] && val[(7+i)%8] && !(val[(3+i)%8] || val[(6+i)%8] || val[(5+i)%8] || val[(4+i)%8])) ||
+								!(val[(0+i)%8] || val[(1+i)%8] || val[(2+i)%8]  || val[(3+i)%8]  || val[(4+i)%8]  || val[(5+i)%8]  || val[(6+i)%8] || val[(7+i)%8]);
+					}
+					if(remove) {
+						(*this)[y][x]=0;
+						changes=true;
+					}
+				}
+			}
+		}
+	}
+}

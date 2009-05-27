@@ -12,26 +12,18 @@
 #include <vector>
 
 class Image;
-// objective C wrapper for our C++ image class - makes memory management with autorelease pools a lot easier
+// objective C wrapper for our image class
 @interface ImageWrapper : NSObject {
-	// the C++ image
 	Image *image;
-	// do we own the image - ie should we delete it when we dealloc
 	bool ownsImage;
-
 }
-
 
 @property(assign, nonatomic) Image *image;
 @property(assign, nonatomic) bool ownsImage;
 + (ImageWrapper *) imageWithCPPImage:(Image *) theImage;
 
-// extract all connected regions from the image
-- (NSMutableArray*) regions;
-
 @end
 
-// simple class for holding an image point
 class ImagePoint {
 public:
 	short x,y;
@@ -52,85 +44,63 @@ public:
 	}
 };
 
-
-// image class - handles grey scale images
-
 class Image {
-public:
-	
-	typedef enum {
-		kRed=1,
-		kGreen=2,
-		kBlue=4} ColorMask;
-	
 private:
-
-	// pointer to the image data
 	uint8_t *m_imageData;
-	// do we actually own the image
-	bool m_ownsData;
-	// width and height
+	uint8_t **m_yptrs;
 	int m_width;
 	int m_height;
-	// constructors used internally by the static helper
+	bool m_ownsData;
 	Image(ImageWrapper *other, int x1, int y1, int x2, int y2);
 	Image(int width, int height);
 	Image(uint8_t *imageData, int width, int height, bool ownsData=false);
-	Image(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false,int colors=kGreen);
-
+	Image(UIImage *srcImage, int width, int height, CGInterpolationQuality interpolation, bool imageIsRotatedBy90degrees=false);
+	void initYptrs();
 public:
-	
-	// destructor
-	~Image() {
-		if(m_ownsData)
-			free(m_imageData);
-	}	
-	// static helpers for creating images - these all return an Objective-C wrapper to the resulting image
-	
 	// copy a section of another image
 	static ImageWrapper *createImage(ImageWrapper *other, int x1, int y1, int x2, int y2);
 	// create an empty image of the required width and height
 	static ImageWrapper *createImage(int width, int height);
 	// create an image from data
 	static ImageWrapper *createImage(uint8_t *imageData, int width, int height, bool ownsData=false);
-	// take a source UIImage and convert it to grayscale
-	static ImageWrapper *createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false, int colors=kGreen);
-	
+	// take a source UIImage and convert it to greyscale
+	static ImageWrapper *createImage(UIImage *srcImage, int width, int height, bool imageIsRotatedBy90degrees=false);
 	// edge detection
 	ImageWrapper *cannyEdgeExtract(float tlow, float thigh);
 	// local thresholding
-	ImageWrapper* autoLocalThreshold(const int local_size=10);
+	ImageWrapper* autoLocalThreshold();
 	// threshold using integral
 	ImageWrapper *autoIntegratingThreshold();
 	// threshold an image automatically
 	ImageWrapper *autoThreshold();
 	// gaussian smooth the image
 	ImageWrapper *gaussianBlur();
-	// extract a connected area from the image
+	// get the percent set pixels
+	int getPercentSet();
+	// exrtact a connected area from the image
 	void extractConnectedRegion(int x, int y, std::vector<ImagePoint> *points);
-
-
 	// find the largest connected region in the image
 	void findLargestStructure(std::vector<ImagePoint> *maxPoints);
 	// normalise an image
 	void normalise();
+	// rotate by 90, 180, 270, 360
+	ImageWrapper *rotate(int angle);
 	// shrink to a new size
 	ImageWrapper *resize(int newX, int newY);
+	ImageWrapper *shrinkBy2();
 	// histogram equalisation
 	void HistogramEqualisation();
-	// skeletonize
+	// skeltonize
 	void skeletonise();
-	// invert pixels
-	void invert();
-	// binary erosion and dilation with a 3x3 square kernal
-	ImageWrapper *erode();
-	ImageWrapper *dilate();
-	
 	// convert back to a UIImage for display
 	UIImage *toUIImage();
-	// access the image data
+	~Image() {
+		if(m_ownsData)
+			free(m_imageData);
+		delete m_yptrs;
+	}
 	inline uint8_t* operator[](const int rowIndex) {
-		return (m_imageData+rowIndex*m_width);
+		return m_yptrs[rowIndex];
 	}
 	inline int getWidth() {
 		return m_width;
@@ -138,16 +108,15 @@ public:
 	inline int getHeight() {
 		return m_height;
 	}
-	// helper functions for resizing
-	static float Interpolate1(float a, float b, float c);
-	static float Interpolate2(float a, float b, float c, float d, float x, float y);
-	// test jig support
-	inline uint8_t* atRow(const int rowIndex) {
-		return (*this)[rowIndex];
-	}
-	inline int atXY(const int x, const int y) {
-		return (*this)[y][x];
-	}
 };
 
+inline bool sortByX1(const ImagePoint &p1, const ImagePoint &p2) {
+	if(p1.x==p2.x) return p1.y<p2.y;
+	return p1.x<p2.x;
+}
+
+inline bool sortByY1(const ImagePoint &p1, const ImagePoint &p2) {
+	if(p1.y==p2.y) return p1.x<p2.x;
+	return p1.y<p2.y;
+}
 
