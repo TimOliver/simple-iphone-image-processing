@@ -3,7 +3,6 @@
 //  WhiteBoardGrab
 //
 //  Created by Chris Greening on 08/03/2009.
-//  Copyright 2009 CMG Research. All rights reserved.
 //
 
 #import "ResultViewController.h"
