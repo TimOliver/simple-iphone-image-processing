@@ -15,7 +15,6 @@
 		2899E5600DE3E45000AC0155 /* RootViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 2899E55F0DE3E45000AC0155 /* RootViewController.xib */; };
 		28C286E10D94DF7D0034E888 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28C286E00D94DF7D0034E888 /* RootViewController.m */; };
 		38ECBE940F816BEB00D665F9 /* elmo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 38ECBE930F816BEB00D665F9 /* elmo.jpg */; };
-		38ECC3A50F82147400D665F9 /* Region.mm in Sources */ = {isa = PBXBuildFile; fileRef = 38ECC3A40F82147400D665F9 /* Region.mm */; };
 		839D2F5F0F6BC914000E4323 /* MainWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 839D2F5E0F6BC914000E4323 /* MainWindow.xib */; };
 		839D2F620F6BC940000E4323 /* ListBundleImagesViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 839D2F610F6BC940000E4323 /* ListBundleImagesViewController.mm */; };
 		839D2F650F6BC984000E4323 /* ResultViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 839D2F640F6BC984000E4323 /* ResultViewController.xib */; };
@@ -37,11 +36,8 @@
 		28C286DF0D94DF7D0034E888 /* RootViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RootViewController.h; sourceTree = "<group>"; };
 		28C286E00D94DF7D0034E888 /* RootViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RootViewController.m; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		3808B6CE0F7F60A1004A0F75 /* Unit Tests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Unit Tests-Info.plist"; sourceTree = "<group>"; };
 		3808B6E00F7F6193004A0F75 /* r50g100b200.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = r50g100b200.png; sourceTree = "<group>"; };
 		38ECBE930F816BEB00D665F9 /* elmo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = elmo.jpg; sourceTree = "<group>"; };
-		38ECC3A30F82146200D665F9 /* Region.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Region.h; sourceTree = "<group>"; };
-		38ECC3A40F82147400D665F9 /* Region.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Region.mm; sourceTree = "<group>"; };
 		839D2F5E0F6BC914000E4323 /* MainWindow.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = MainWindow.xib; sourceTree = "<group>"; };
 		839D2F600F6BC940000E4323 /* ListBundleImagesViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ListBundleImagesViewController.h; sourceTree = "<group>"; };
 		839D2F610F6BC940000E4323 /* ListBundleImagesViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ListBundleImagesViewController.mm; sourceTree = "<group>"; };
@@ -74,8 +70,6 @@
 			children = (
 				839D2F760F6BC9E2000E4323 /* Image.h */,
 				839D2F770F6BC9E2000E4323 /* Image.mm */,
-				38ECC3A30F82146200D665F9 /* Region.h */,
-				38ECC3A40F82147400D665F9 /* Region.mm */,
 				839D2F660F6BC9A4000E4323 /* ResultViewController.h */,
 				839D2F670F6BC9A4000E4323 /* ResultViewController.mm */,
 				839D2F600F6BC940000E4323 /* ListBundleImagesViewController.h */,
@@ -104,7 +98,6 @@
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
-				3808B6CE0F7F60A1004A0F75 /* Unit Tests-Info.plist */,
 			);
 			name = CustomTemplate;
 			sourceTree = "<group>";
@@ -214,7 +207,6 @@
 				839D2F620F6BC940000E4323 /* ListBundleImagesViewController.mm in Sources */,
 				839D2F680F6BC9A4000E4323 /* ResultViewController.mm in Sources */,
 				839D2F780F6BC9E2000E4323 /* Image.mm in Sources */,
-				38ECC3A50F82147400D665F9 /* Region.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
